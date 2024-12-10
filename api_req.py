@@ -1,10 +1,7 @@
 # импорт необходимых библиотек
 import requests
-import pandas as pd
-import json
-from api_key import API_KEY
 
-api_key = API_KEY
+
 
 class Weather:
 
@@ -19,12 +16,25 @@ class Weather:
         loc_key_url = f'http://dataservice.accuweather.com/locations/v1/cities/geoposition/search?apikey={self.api_key}&q={lat},{lon}'
         r = requests.get(loc_key_url)
         if r.status_code == 200:
-            self.loc_key = r.json()['Key']
+            loc_key = r.json()['Key']
+            return loc_key
         else:
             print(f"Ошибка {r.status_code}, при запросе location_key")
             return None
 
-    def get_weather_data(self):
+    def get_loc_key_by_city(self, name):
+        loc_key_url = f'http://dataservice.accuweather.com/locations/v1/search?apikey={self.api_key}&q={name}'
+        r = requests.get(loc_key_url)
+        if r.status_code == 200:
+            loc_key = r.json()[0]['Key']
+            return loc_key
+        else:
+            print(f"Ошибка {r.status_code}, при запросе location_key")
+            return None
+    def get_weather_data(self, city_name):
+        #Получение loc_key по названию города
+        self.loc_key = self.get_loc_key_by_city(city_name)
+
         #Получение данных о погоде, по location key
         weather_url = f'http://dataservice.accuweather.com/currentconditions/v1/{self.loc_key}?apikey={self.api_key}&language=ru&details=true&metric=true'
         r = requests.get(weather_url)
@@ -38,24 +48,35 @@ class Weather:
         temperature = weather_data[0]['Temperature']['Metric']['Value']
         humidity = weather_data[0]['RelativeHumidity']
         wind_speed = weather_data[0]['Wind']['Speed']['Metric']['Value']
+        weather_text = weather_data[0]['WeatherText']
         if not(weather_data[0]['HasPrecipitation']):
-            daily_forecasts_url = f'http://dataservice.accuweather.com/forecasts/v1/daily/1day/{self.api_key}?apikey={self.api_key}&language=ru&details=true&metric=true'
+            daily_forecasts_url = f'http://dataservice.accuweather.com/forecasts/v1/daily/1day/{self.loc_key}?apikey={self.api_key}&language=ru&details=true&metric=true'
             r = requests.get(daily_forecasts_url)
             if r.status_code == 200:
                 forecasts = r.json()
                 prob_day = forecasts['DailyForecasts'][0]['Day']['RainProbability']
                 prob_night = forecasts['DailyForecasts'][0]['Night']['RainProbability']
-                rain_prob = ((prob_day+prob_night) - prob_night*prob_day)*100
+                rain_prob = ((prob_day+prob_night) - (prob_night*prob_day)/100)
             else:
-                return (f'Не удалось получить данные о вероятности дожджя, ошибка {r.status_code}')
+                print(f'Не удалось получить данные о вероятности дожджя, ошибка {r.status_code}')
+                return None
         else:
             rain_prob = 100
+        #Классификаци погодных условий плохие/хорошие
+
+        if temperature<5 or temperature>30 or wind_speed>35 or rain_prob>70 or (temperature<15 and wind_speed>40):
+            weather_type = f'Погода плохая, {weather_text.lower()}'
+        else:
+            weather_type = f'Погода хорошая, {weather_text.lower()}'
 
         #сохранение параметров
-        self.cached_data = {'Температура(C)': temperature,
-                  'Влажность(%)': humidity,
-                  'Скорость ветра': wind_speed,
-                  "Вероятность дождя(%)":rain_prob}
+        self.cached_data = {
+            'temp': temperature,
+            'humidity': humidity,
+            'wind_speed': wind_speed,
+            "rain_prob":rain_prob,
+            "weather_type": weather_type}
 
         return self.cached_data
+
 
