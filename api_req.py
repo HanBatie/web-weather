@@ -1,7 +1,8 @@
 # импорт необходимых библиотек
 import requests
+import logging
 
-
+logging.basicConfig(level=logging.INFO, filename='log_info.log', filemode='w' )
 
 class Weather:
 
@@ -19,8 +20,8 @@ class Weather:
             loc_key = r.json()['Key']
             return loc_key
         else:
-            print(f"Ошибка {r.status_code}, при запросе location_key")
-            return None
+            logging.info(f"Ошибка {r.status_code}, get_loc_key_by_coords")
+            return r.status_code
 
     def get_loc_key_by_city(self, name):
         loc_key_url = f'http://dataservice.accuweather.com/locations/v1/search?apikey={self.api_key}&q={name}'
@@ -29,8 +30,9 @@ class Weather:
             loc_key = r.json()[0]['Key']
             return loc_key
         else:
-            print(f"Ошибка {r.status_code}, при запросе location_key")
-            return None
+            logging.info(f"Ошибка {r.status_code}, get_loc_key_by_city")
+            return r.status_code
+
     def get_weather_data(self, city_name):
         #Получение loc_key по названию города
         self.loc_key = self.get_loc_key_by_city(city_name)
@@ -41,8 +43,8 @@ class Weather:
         if r.status_code == 200:
             weather_data = r.json()
         else:
-            print(f"Ошибка {r.status_code}, при получении погодных условий")
-            return None
+            logging.info(f"Ошибка {r.status_code}, get_weather_data")
+            return r.status_code
 
         #Извлечение ключевых параметров
         temperature = weather_data[0]['Temperature']['Metric']['Value']
@@ -58,8 +60,8 @@ class Weather:
                 prob_night = forecasts['DailyForecasts'][0]['Night']['RainProbability']
                 rain_prob = ((prob_day+prob_night) - (prob_night*prob_day)/100)
             else:
-                print(f'Не удалось получить данные о вероятности дожджя, ошибка {r.status_code}')
-                return None
+                logging.info(f'Ошибка:{r.status_code}, error in get rain_prob')
+                return r.status_code
         else:
             rain_prob = 100
         #Классификаци погодных условий плохие/хорошие

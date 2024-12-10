@@ -1,5 +1,4 @@
 from flask import Flask, request, render_template
-from spellchecker import SpellChecker
 
 from api_req import Weather
 from api_key import API_KEY
@@ -16,6 +15,13 @@ def hello_page():
 
 @app.route('/trip_weather', methods=['GET', 'POST'])
 def check_weather():
+    error_codes = {
+        400: 'Неправильно введены названия городов',
+        401: 'Авторизация не удалась, попробуйте позже',
+        403: "Нет доступа к запрашиваемым данным",
+        404: "Непрвильно введены названия городов ес",
+        500: "Не получилось выполнить запрос, повторите попытку позже"
+    }
     if request.method=='GET':
         return render_template('trip_weather_form.html')
     else:
@@ -56,7 +62,7 @@ def check_weather():
                                    city2_weather_type=city2_weather_type
                                    )
         except Exception as e:
-            return render_template('problem.html', error = e)
+            return render_template('problem.html', error = error_codes[e])
 
 if __name__ == '__main__':
     app.run(debug=True)
