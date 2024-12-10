@@ -20,11 +20,9 @@ def check_weather():
         return render_template('trip_weather_form.html')
     else:
         try:
-            spell = SpellChecker('ru')
-
-            city1_name = spell.correction(request.form['startPoint'])
-            city2_name = spell.correction(request.form['endPoint'])
-            print(city1_name, city2_name)
+            #считываем названия городов/убираем цыфры если есть
+            city1_name = ''.join(_ for _ in request.form['startPoint'] if not _.isdigit())
+            city2_name = ''.join(_ for _ in request.form['endPoint'] if not _.isdigit())
 
             #получаем данные о погоде в городах
             s_point_data = weather_api.get_weather_data(city1_name)
