@@ -62,7 +62,9 @@ def check_weather():
                                    city2_weather_type=city2_weather_type
                                    )
         except Exception as e:
-            return render_template('problem.html', error = error_codes[e])
-
+            if type(s_point_data)==int:
+                return render_template('problem.html', error = error_codes.get(s_point_data, e))
+            else:
+                return render_template('problem.html', error = error_codes.get(e_point_data, e))
 if __name__ == '__main__':
     app.run(debug=True)
